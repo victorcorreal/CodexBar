@@ -54,3 +54,5 @@ disables the official update feed so automatic updates cannot replace the custom
 The Desktop card shows compact bars for the current session and every weekly limit returned by Claude, including model-specific limits. Each row shows its used/remaining percentage and reset time. Extra paid usage appears only when enabled and available, as spending against its monthly cap; this is not a prepaid credit balance. These values always come from the active Desktop account.
 
 The custom Claude menu keeps the usage bars, the account selector and Refresh. The card omits its duplicate email; the selector remains the place to see and switch the active account. Standard links and footer actions remain available in the other provider menus.
+
+In custom Desktop mode, Overview shows the full enabled-provider cards together. Claude uses the same Desktop bars and account selector as its own tab, including permission errors and verification. Codex retains its own usage, identity and reset credits. No tab change is required to see these details.

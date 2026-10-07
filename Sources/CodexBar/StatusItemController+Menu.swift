@@ -568,7 +568,7 @@ extension StatusItemController {
     }
 
     @discardableResult
-    private func addOverviewRows(
+    func addOverviewRows(
         to menu: NSMenu,
         enabledProviders: [UsageProvider],
         menuWidth: CGFloat,
@@ -834,7 +834,7 @@ extension StatusItemController {
         }
         if switcherSelection == .overview {
             let enabledProviders = self.store.enabledFirstPartyProvidersForDisplay()
-            if self.addOverviewRows(
+            if self.addDesktopAwareOverviewRows(
                 to: menu,
                 enabledProviders: enabledProviders,
                 menuWidth: context.menuWidth,
