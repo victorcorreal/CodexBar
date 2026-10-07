@@ -1008,10 +1008,10 @@ extension StatusItemController {
         width: CGFloat) -> NSMenuItem
     {
         let view = ProviderSwitcherView(
-            providers: providers,
-            pluginProviders: self.topLevelUserProviderPlugins(),
+            providers: self.desktopOverviewOnly ? [] : providers,
+            pluginProviders: self.desktopOverviewOnly ? [] : self.topLevelUserProviderPlugins(),
             selected: selected,
-            includesOverview: includesOverview,
+            includesOverview: self.desktopOverviewOnly || includesOverview,
             width: width,
             showsIcons: self.settings.switcherShowsIcons,
             iconProvider: { [weak self] provider in

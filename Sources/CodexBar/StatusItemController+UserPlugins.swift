@@ -58,6 +58,7 @@ extension StatusItemController {
     }
 
     func resolvedMergedMenuSelection(enabledProviders: [UsageProvider]) -> ProviderSwitcherSelection? {
+        if self.desktopOverviewOnly { return .overview }
         guard self.shouldMergeIcons,
               !self.switcherProviderIDs(enabledFirstPartyProviders: enabledProviders).isEmpty
         else { return nil }
