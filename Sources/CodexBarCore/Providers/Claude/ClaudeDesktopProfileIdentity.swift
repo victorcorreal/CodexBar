@@ -50,7 +50,7 @@ public enum ClaudeDesktopProfileIdentity {
         ]
         if !allowInteraction { KeychainNoUIQuery.apply(to: &query) }
         var result: CFTypeRef?
-        let status = SecItemCopyMatching(query as CFDictionary, &result)
+        let status = KeychainSecurity.copyMatching(query as CFDictionary, &result)
         guard status == errSecSuccess, let passwordData = result as? Data else {
             throw Failure.permissionRequired
         }
