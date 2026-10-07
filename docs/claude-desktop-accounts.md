@@ -1,7 +1,7 @@
 # Claude Desktop Accounts
 
 The Claude menu includes **Claude Desktop: email** and a submenu for switching the Mac app's account.
-This is separate from Claude Code CLI account switching and its usage cards.
+When the custom Desktop bar is enabled, the Claude tab shows the active Desktop account and its session usage instead of the CLI credentials card. Desktop read failures remain visible. The standard CLI card remains available when the custom bar is disabled.
 The existing **Hide Personal Information** preference also hides these email addresses.
 
 The local custom menu bar shows only text, without icons or percent signs: **Cdx 83  Cl 99**. It displays **Cdx** (Codex) and

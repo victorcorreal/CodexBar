@@ -9,6 +9,21 @@ struct ClaudeDesktopUsageTests {
     private let identity = ClaudeDesktopProfileIdentity.Identity(accountID: "account-a", email: "a@example.com")
 
     @Test
+    func `desktop card uses only desktop usage and reports its own failures`() {
+        let ready = ClaudeDesktopUsageCard.State(
+            email: "a@example.com", percentage: "99%", showUsed: false, error: nil, isOpen: true)
+        #expect(ready.sessionText == "Current Session: 99% Remaining")
+        #expect(ready.statusText == nil)
+        let denied = ClaudeDesktopUsageCard.State(
+            email: nil, percentage: nil, showUsed: false, error: "Desktop permission required", isOpen: true)
+        #expect(denied.sessionText == nil)
+        #expect(denied.statusText == "Desktop permission required")
+        let closed = ClaudeDesktopUsageCard.State(
+            email: nil, percentage: nil, showUsed: false, error: nil, isOpen: false)
+        #expect(closed.statusText == "Open Claude to show the active account's usage.")
+    }
+
+    @Test
     func `background verification never reads a secret when the installed executable needs authorization`() throws {
         for outcome in [
             KeychainAccessPreflight.Outcome.interactionRequired,
