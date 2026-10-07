@@ -4,7 +4,7 @@ The Claude menu includes **Claude Desktop: email** and a submenu for switching t
 This is separate from Claude Code CLI account switching and its usage cards.
 The existing **Hide Personal Information** preference also hides these email addresses.
 
-The local custom menu bar uses its own two-column gauge icon and shows **Cdx** (Codex) and
+The local custom menu bar shows only text, without icons or percent signs: **Cdx 83  Cl 99**. It displays **Cdx** (Codex) and
 **Cl** (the running Claude Desktop account) together. Claude shows the current five-hour session
 limit, following the existing used/remaining preference. It refreshes about once a minute and
 detects profile, account and organization changes about every five seconds. A changed account

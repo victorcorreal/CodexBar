@@ -28,7 +28,9 @@ extension StatusItemController {
             String(self.shouldUseHighContrastStatusItemContent), String(self.settings.usageBarsShowUsed),
         ].joined(separator: "|")
         let skipped = self.shouldSkipMergedIconRender(signature)
-        self.setButtonContent(image: Self.customUsageIcon, title: text, for: button)
+        button.image = nil
+        button.imagePosition = .noImage
+        button.attributedTitle = NSAttributedString(string: text)
         let direction = self.settings.usageBarsShowUsed ? "used" : "remaining"
         button
             .setAccessibilityLabel(
@@ -37,18 +39,8 @@ extension StatusItemController {
     }
 
     static func desktopUsageTitle(codex: String?, claude: String?) -> String {
-        "Cdx \(codex ?? "—")  Cl \(claude ?? "—")"
+        let codexNumber = codex?.replacingOccurrences(of: "%", with: "") ?? "—"
+        let claudeNumber = claude?.replacingOccurrences(of: "%", with: "") ?? "—"
+        return "Cdx \(codexNumber)  Cl \(claudeNumber)"
     }
-
-    /// Our own double-column gauge, distinct from both the OpenAI knot and Claude's star.
-    static let customUsageIcon: NSImage = {
-        let image = NSImage(size: NSSize(width: 18, height: 18), flipped: false) { _ in
-            NSColor.labelColor.setFill()
-            NSBezierPath(roundedRect: NSRect(x: 2, y: 3, width: 5, height: 12), xRadius: 1.5, yRadius: 1.5).fill()
-            NSBezierPath(roundedRect: NSRect(x: 10, y: 3, width: 5, height: 8), xRadius: 1.5, yRadius: 1.5).fill()
-            return true
-        }
-        image.isTemplate = true
-        return image
-    }()
 }
