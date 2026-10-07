@@ -9,6 +9,37 @@ struct ClaudeDesktopUsageTests {
     private let identity = ClaudeDesktopProfileIdentity.Identity(accountID: "account-a", email: "a@example.com")
 
     @Test
+    func `desktop visual limits preserve scoped weekly models resets and paid usage units`() throws {
+        let data = Data("""
+        {"limits":[{"kind":"session","percent":0},
+          {"kind":"weekly_scoped","group":"weekly","percent":24,
+           "resets_at":"2030-10-11T12:00:00Z","scope":{"model":{"id":"fable","display_name":"Fable"}}}],
+         "seven_day":{"utilization":80},
+         "extra_usage":{"is_enabled":true,"used_credits":125,"monthly_limit":1000,"currency":"USD"}}
+        """.utf8)
+        let response = try ClaudeOAuthUsageFetcher.decodeUsageResponse(data)
+        let usage = try ClaudeDesktopProfileIdentity.usage(response: response, identity: self.identity, now: self.now)
+        #expect(usage.weeklyLimits.count == 1)
+        #expect(usage.weeklyLimits.first?.title == "Fable")
+        #expect(usage.weeklyLimits.first?.usedPercent == 24)
+        #expect(usage.weeklyLimits.first?.resetsAt != nil)
+        #expect(usage.extraUsage?.used == 1.25)
+        #expect(usage.extraUsage?.limit == 10)
+        let uncapped = try ClaudeOAuthUsageFetcher.decodeUsageResponse(Data(
+            "{\"extra_usage\":{\"is_enabled\":true,\"used_credits\":125,\"monthly_limit\":0}}".utf8))
+        #expect(try ClaudeDesktopProfileIdentity.extraUsage(uncapped.extraUsage) == nil)
+        let legacy = try ClaudeOAuthUsageFetcher.decodeUsageResponse(Data(
+            "{\"five_hour\":{\"utilization\":1},\"seven_day\":{\"utilization\":12},\"seven_day_opus\":{\"utilization\":34}}"
+                .utf8))
+        #expect(try ClaudeDesktopProfileIdentity.weeklyLimits(response: legacy).map(\.title) == ["Semana", "Opus"])
+        let invalid = try ClaudeOAuthUsageFetcher.decodeUsageResponse(Data(
+            "{\"limits\":[{\"group\":\"weekly\",\"percent\":101}]}".utf8))
+        #expect(throws: ClaudeDesktopProfileIdentity.Failure.self) {
+            try ClaudeDesktopProfileIdentity.weeklyLimits(response: invalid)
+        }
+    }
+
+    @Test
     func `desktop card uses only desktop usage and reports its own failures`() {
         let ready = ClaudeDesktopUsageCard.State(
             email: "a@example.com", percentage: "99%", showUsed: false, error: nil, isOpen: true)
