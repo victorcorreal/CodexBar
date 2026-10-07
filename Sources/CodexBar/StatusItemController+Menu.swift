@@ -846,6 +846,7 @@ extension StatusItemController {
             }
         } else {
             let addedOpenAIWebItems = self.addMenuCards(to: menu, context: context, captureMenu: captureMenu)
+            self.addClaudeDesktopProfiles(to: menu, provider: context.currentProvider)
             self.addOpenAIWebItemsIfNeeded(
                 to: menu,
                 currentProvider: context.currentProvider,
