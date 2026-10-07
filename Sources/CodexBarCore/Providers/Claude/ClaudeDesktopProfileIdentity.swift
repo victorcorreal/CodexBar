@@ -28,8 +28,12 @@ public enum ClaudeDesktopProfileIdentity {
     public static func accountID(directory: URL) throws -> String? {
         let url = directory.appendingPathComponent("config.json")
         guard FileManager.default.fileExists(atPath: url.path) else { return nil }
-        let root = try JSONSerialization.jsonObject(with: Data(contentsOf: url)) as? [String: Any]
-        return (root?["lastKnownAccountUuid"] as? String)?.lowercased()
+        guard let root = try JSONSerialization.jsonObject(with: Data(contentsOf: url)) as? [String: Any] else {
+            throw Failure.invalidCache
+        }
+        guard let accountID = root["lastKnownAccountUuid"] as? String else { return nil }
+        guard UUID(uuidString: accountID) != nil else { throw Failure.invalidCache }
+        return accountID.lowercased()
     }
 
     public static func read(directory: URL, allowInteraction: Bool = false) async throws -> Identity {
@@ -109,10 +113,15 @@ public enum ClaudeDesktopProfileIdentity {
             password.withUnsafeBytes { passwordBytes in
                 salt.withUnsafeBytes { saltBytes in
                     CCKeyDerivationPBKDF(
-                        CCPBKDFAlgorithm(kCCPBKDF2), passwordBytes.bindMemory(to: Int8.self).baseAddress,
-                        password.count, saltBytes.bindMemory(to: UInt8.self).baseAddress, salt.count,
-                        CCPseudoRandomAlgorithm(kCCPRFHmacAlgSHA1), 1003,
-                        keyBytes.bindMemory(to: UInt8.self).baseAddress, kCCKeySizeAES128)
+                        CCPBKDFAlgorithm(kCCPBKDF2),
+                        passwordBytes.bindMemory(to: Int8.self).baseAddress,
+                        password.count,
+                        saltBytes.bindMemory(to: UInt8.self).baseAddress,
+                        salt.count,
+                        CCPseudoRandomAlgorithm(kCCPRFHmacAlgSHA1),
+                        1003,
+                        keyBytes.bindMemory(to: UInt8.self).baseAddress,
+                        kCCKeySizeAES128)
                 }
             }
         }
@@ -132,10 +141,17 @@ public enum ClaudeDesktopProfileIdentity {
                 key.withUnsafeBytes { keyBytes in
                     iv.withUnsafeBytes { ivBytes in
                         CCCrypt(
-                            CCOperation(kCCDecrypt), CCAlgorithm(kCCAlgorithmAES), CCOptions(kCCOptionPKCS7Padding),
-                            keyBytes.baseAddress, key.count, ivBytes.baseAddress, payloadBytes.baseAddress,
+                            CCOperation(kCCDecrypt),
+                            CCAlgorithm(kCCAlgorithmAES),
+                            CCOptions(kCCOptionPKCS7Padding),
+                            keyBytes.baseAddress,
+                            key.count,
+                            ivBytes.baseAddress,
+                            payloadBytes.baseAddress,
                             payload.count,
-                            outputBytes.baseAddress, capacity, &length)
+                            outputBytes.baseAddress,
+                            capacity,
+                            &length)
                     }
                 }
             }

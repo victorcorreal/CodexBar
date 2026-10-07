@@ -386,6 +386,11 @@ extension StatusItemController {
                     for profile in running {
                         parts.append("desktop:\(profile.processID):\(profile.profileID?.uuidString ?? "existing")")
                         parts.append(desktopProfiles.email(for: profile.profileID) ?? "unverified")
+                        let config = desktopProfiles.directory(for: profile.profileID)
+                            .appendingPathComponent("config.json")
+                        let modified = try? config.resourceValues(forKeys: [.contentModificationDateKey])
+                            .contentModificationDate
+                        parts.append(String(modified?.timeIntervalSince1970 ?? 0))
                     }
                 }
                 parts.append(Self.menuIdentityField(self.store.claudeSwapLastError ?? ""))

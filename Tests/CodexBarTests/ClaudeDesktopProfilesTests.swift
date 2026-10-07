@@ -53,6 +53,21 @@ struct ClaudeDesktopProfilesTests {
     }
 
     @Test
+    func `desktop metadata rejects malformed account identifiers`() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let config = directory.appendingPathComponent("config.json")
+        try Data("{\"lastKnownAccountUuid\":\"invalid\"}".utf8).write(to: config)
+        #expect(throws: ClaudeDesktopProfileIdentity.Failure.self) {
+            try ClaudeDesktopProfileIdentity.accountID(directory: directory)
+        }
+        let accountID = UUID()
+        try JSONSerialization.data(withJSONObject: ["lastKnownAccountUuid": accountID.uuidString]).write(to: config)
+        #expect(try ClaudeDesktopProfileIdentity.accountID(directory: directory) == accountID.uuidString.lowercased())
+    }
+
+    @Test
     func `desktop identity must match the active account`() {
         #expect(ClaudeDesktopProfileIdentity.verifiedIdentity(
             expectedAccountID: "account-a", responseAccountID: "account-b", email: "other@example.com") == nil)

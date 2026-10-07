@@ -1,7 +1,9 @@
 import AppKit
+import CodexBarCore
 
 extension StatusItemController {
-    func addClaudeDesktopProfiles(to menu: NSMenu) {
+    func addClaudeDesktopProfiles(to menu: NSMenu, provider: UsageProvider) {
+        guard provider == .claude else { return }
         let profiles = ClaudeDesktopProfiles.shared
         profiles.didChange = { [weak self] in self?.refreshOpenMenusAfterExplicitStoreAction() }
         let submenu = NSMenu(title: "Claude Desktop Accounts")
@@ -11,7 +13,8 @@ extension StatusItemController {
             let active = running.first { $0.processID == foregroundPID } ?? running.first
             let title: String
             if let active {
-                title = "Claude Desktop: \(profiles.email(for: active.profileID) ?? profiles.name(for: active.profileID))"
+                let label = profiles.email(for: active.profileID) ?? profiles.name(for: active.profileID)
+                title = "Claude Desktop: \(label)"
                 profiles.verifyIdentity(for: active.profileID)
             } else {
                 title = "Claude Desktop: Closed"
@@ -26,7 +29,8 @@ extension StatusItemController {
                 let email = profiles.email(for: id)
                 let item = NSMenuItem(
                     title: email.map { "\(name) · \($0)" } ?? name,
-                    action: #selector(self.switchClaudeDesktopProfile(_:)), keyEquivalent: "")
+                    action: #selector(self.switchClaudeDesktopProfile(_:)),
+                    keyEquivalent: "")
                 item.target = self
                 item.representedObject = id?.uuidString ?? "existing"
                 item.state = running.contains { $0.profileID == id } ? .on : .off
@@ -40,7 +44,8 @@ extension StatusItemController {
                 status.isEnabled = false
                 submenu.addItem(status)
                 let verify = NSMenuItem(
-                    title: "Verify Account Email…", action: #selector(self.verifyClaudeDesktopEmail(_:)),
+                    title: "Verify Account Email…",
+                    action: #selector(self.verifyClaudeDesktopEmail(_:)),
                     keyEquivalent: "")
                 verify.target = self
                 verify.representedObject = active.profileID?.uuidString ?? "existing"
@@ -57,7 +62,8 @@ extension StatusItemController {
         }
         submenu.addItem(.separator())
         let add = NSMenuItem(
-            title: "Add Claude Desktop Account…", action: #selector(self.addClaudeDesktopProfile(_:)),
+            title: "Add Claude Desktop Account…",
+            action: #selector(self.addClaudeDesktopProfile(_:)),
             keyEquivalent: "")
         add.target = self
         add.isEnabled = !profiles.isSwitching
@@ -90,7 +96,7 @@ extension StatusItemController {
         NSApp.activate(ignoringOtherApps: true)
         let alert = NSAlert()
         alert.messageText = "Add Claude Desktop Account"
-        alert.informativeText = "Name this profile. Claude will close and reopen so you can sign in to the new account. "
+        alert.informativeText = "Name this profile. Claude will reopen so you can sign in to the new account. "
             + "Each profile keeps its own login and conversations. Finish any active Code work before continuing."
         let field = NSTextField(frame: NSRect(x: 0, y: 0, width: 320, height: 24))
         field.placeholderString = "Personal or Work"
@@ -102,8 +108,11 @@ extension StatusItemController {
         do {
             let profile = try ClaudeDesktopProfiles.shared.create(name: field.stringValue)
             Task {
-                do { try await ClaudeDesktopProfiles.shared.launch(id: profile.id) }
-                catch { self.showClaudeDesktopProfileError(error) }
+                do {
+                    try await ClaudeDesktopProfiles.shared.launch(id: profile.id)
+                } catch {
+                    self.showClaudeDesktopProfileError(error)
+                }
             }
         } catch {
             self.showClaudeDesktopProfileError(error)

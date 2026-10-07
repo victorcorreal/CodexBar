@@ -3,7 +3,9 @@ import CodexBarCore
 
 @MainActor
 final class ClaudeDesktopProfiles {
-    static let shared = ClaudeDesktopProfiles()
+    static let shared = ClaudeDesktopProfiles(home: TestProcessSafety.isRunning
+        ? FileManager.default.temporaryDirectory.appendingPathComponent("CodexBarDesktopTests-\(UUID().uuidString)")
+        : FileManager.default.homeDirectoryForCurrentUser)
 
     struct Profile: Codable, Identifiable {
         let id: UUID
@@ -29,7 +31,7 @@ final class ClaudeDesktopProfiles {
     private(set) var revision = 0
     private let logger = CodexBarLog.logger(LogCategories.app)
 
-    init(home: URL = FileManager.default.homeDirectoryForCurrentUser) {
+    init(home: URL) {
         self.home = home
         self.root = home.appendingPathComponent("Library/Application Support/CodexBar/ClaudeDesktopProfiles")
         do {
@@ -66,10 +68,12 @@ final class ClaudeDesktopProfiles {
         try FileManager.default.createDirectory(
             at: profileRoot, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
         try FileManager.default.createDirectory(
-            at: self.directory(for: profile.id), withIntermediateDirectories: true,
+            at: self.directory(for: profile.id),
+            withIntermediateDirectories: true,
             attributes: [.posixPermissions: 0o700])
         try FileManager.default.createDirectory(
-            at: profileRoot.appendingPathComponent("code"), withIntermediateDirectories: true,
+            at: profileRoot.appendingPathComponent("code"),
+            withIntermediateDirectories: true,
             attributes: [.posixPermissions: 0o700])
         let updated = self.profiles + [profile]
         try JSONEncoder().encode(updated).write(to: self.root.appendingPathComponent("profiles.json"), options: .atomic)
@@ -95,6 +99,7 @@ final class ClaudeDesktopProfiles {
     }
 
     func running() throws -> [RunningProfile] {
+        guard !TestProcessSafety.isRunning else { return [] }
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/bin/ps")
         process.arguments = ["-axo", "pid=,command="]
@@ -111,7 +116,12 @@ final class ClaudeDesktopProfiles {
         let directories = [(nil as UUID?, self.directory(for: nil).path)] + self.profiles.map {
             (Optional($0.id), self.directory(for: $0.id).path)
         }
-        return try String(decoding: data, as: UTF8.self).split(separator: "\n").compactMap { line in
+        guard let output = String(data: data, encoding: .utf8) else {
+            throw NSError(domain: "ClaudeDesktopProfiles", code: 7, userInfo: [
+                NSLocalizedDescriptionKey: "Claude process information could not be decoded.",
+            ])
+        }
+        return try output.split(separator: "\n").compactMap { line in
             let parts = line.trimmingCharacters(in: .whitespaces).split(separator: " ", maxSplits: 1)
             guard parts.count == 2, let pid = pid_t(parts[0]) else { return nil }
             let command = String(parts[1])
@@ -165,6 +175,11 @@ final class ClaudeDesktopProfiles {
     }
 
     func launch(id: UUID?) async throws {
+        guard !TestProcessSafety.isRunning else {
+            throw NSError(domain: "ClaudeDesktopProfiles", code: 6, userInfo: [
+                NSLocalizedDescriptionKey: "Live Claude launches are disabled in tests.",
+            ])
+        }
         guard !self.isSwitching else { return }
         guard id == nil || self.profiles.contains(where: { $0.id == id }) else { return }
         let appURL = URL(fileURLWithPath: "/Applications/Claude.app")
