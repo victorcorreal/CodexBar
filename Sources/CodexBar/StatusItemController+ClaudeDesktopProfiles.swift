@@ -3,6 +3,7 @@ import CodexBarCore
 
 extension StatusItemController {
     func addClaudeDesktopProfiles(to menu: NSMenu, provider: UsageProvider) {
+        // Provider-specific by design: this selector manages Claude Desktop's isolated Electron profiles.
         guard provider == .claude else { return }
         let profiles = ClaudeDesktopProfiles.shared
         profiles.didChange = { [weak self] in self?.refreshOpenMenusAfterExplicitStoreAction() }
