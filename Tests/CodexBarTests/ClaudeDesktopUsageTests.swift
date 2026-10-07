@@ -28,9 +28,9 @@ struct ClaudeDesktopUsageTests {
         let uncapped = try ClaudeOAuthUsageFetcher.decodeUsageResponse(Data(
             "{\"extra_usage\":{\"is_enabled\":true,\"used_credits\":125,\"monthly_limit\":0}}".utf8))
         #expect(try ClaudeDesktopProfileIdentity.extraUsage(uncapped.extraUsage) == nil)
-        let legacy = try ClaudeOAuthUsageFetcher.decodeUsageResponse(Data(
-            "{\"five_hour\":{\"utilization\":1},\"seven_day\":{\"utilization\":12},\"seven_day_opus\":{\"utilization\":34}}"
-                .utf8))
+        let legacy = try ClaudeOAuthUsageFetcher.decodeUsageResponse(Data("""
+        {"five_hour":{"utilization":1},"seven_day":{"utilization":12},"seven_day_opus":{"utilization":34}}
+        """.utf8))
         #expect(try ClaudeDesktopProfileIdentity.weeklyLimits(response: legacy).map(\.title) == ["Semana", "Opus"])
         let invalid = try ClaudeOAuthUsageFetcher.decodeUsageResponse(Data(
             "{\"limits\":[{\"group\":\"weekly\",\"percent\":101}]}".utf8))
