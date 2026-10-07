@@ -214,9 +214,10 @@ final class ClaudeDesktopProfiles {
         let configuration = NSWorkspace.OpenConfiguration()
         configuration.createsNewApplicationInstance = true
         configuration.arguments = ["--user-data-dir=\(self.directory(for: id).path)"]
-        let codeDirectory = id.map { self.root.appendingPathComponent($0.uuidString).appendingPathComponent("code") }
-            ?? self.home.appendingPathComponent(".claude")
-        configuration.environment = ["CLAUDE_CONFIG_DIR": codeDirectory.path]
+        if let id {
+            let codeDirectory = self.root.appendingPathComponent(id.uuidString).appendingPathComponent("code")
+            configuration.environment = ["CLAUDE_CONFIG_DIR": codeDirectory.path]
+        }
         _ = try await NSWorkspace.shared.openApplication(at: appURL, configuration: configuration)
         self.revision += 1
         self.didChange?()
