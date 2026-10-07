@@ -9,6 +9,39 @@ struct ClaudeDesktopUsageTests {
     private let identity = ClaudeDesktopProfileIdentity.Identity(accountID: "account-a", email: "a@example.com")
 
     @Test
+    func `background verification never reads a secret when the installed executable needs authorization`() throws {
+        for outcome in [
+            KeychainAccessPreflight.Outcome.interactionRequired,
+            .temporarilyUnavailable,
+            .notFound,
+            .failure(-1),
+        ] {
+            var readCalled = false
+            #expect(throws: ClaudeDesktopProfileIdentity.Failure.self) {
+                try ClaudeDesktopProfileIdentity.readSafeStorage(
+                    allowInteraction: false,
+                    preflight: { outcome },
+                    read: { readCalled = true; return Data() })
+            }
+            #expect(!readCalled)
+        }
+        let authorized = try ClaudeDesktopProfileIdentity.readSafeStorage(
+            allowInteraction: false, preflight: { .allowed }, read: { Data("fixture".utf8) })
+        #expect(authorized == Data("fixture".utf8))
+    }
+
+    @Test
+    func `explicit verification can request authorization instead of getting stuck behind background reads`() throws {
+        var preflightCalled = false
+        let data = try ClaudeDesktopProfileIdentity.readSafeStorage(
+            allowInteraction: true,
+            preflight: { preflightCalled = true; return .interactionRequired },
+            read: { Data("fixture".utf8) })
+        #expect(data == Data("fixture".utf8))
+        #expect(!preflightCalled)
+    }
+
+    @Test
     func `Desktop cache accepts its actual HTTPS host and prefers full scope production tokens`() {
         let client = "9d1c250a-e61b-44d9-88ed-5944d1962f5e"
         let org = UUID().uuidString.lowercased()

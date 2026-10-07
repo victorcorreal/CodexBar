@@ -108,11 +108,17 @@ public enum ClaudeDesktopProfileIdentity {
             kSecMatchLimit as String: kSecMatchLimitOne,
         ]
         if !allowInteraction { KeychainNoUIQuery.apply(to: &query) }
-        var result: CFTypeRef?
-        let status = KeychainSecurity.copyMatching(query as CFDictionary, &result)
-        guard status == errSecSuccess, let passwordData = result as? Data else {
-            throw Failure.permissionRequired
-        }
+        let passwordData = try self.readSafeStorage(
+            allowInteraction: allowInteraction,
+            preflight: {
+                KeychainAccessPreflight.checkGenericPassword(service: "Claude Safe Storage", account: "Claude Key")
+            },
+            read: {
+                var result: CFTypeRef?
+                let status = KeychainSecurity.copyMatching(query as CFDictionary, &result)
+                guard status == errSecSuccess, let data = result as? Data else { throw Failure.permissionRequired }
+                return data
+            })
         let key = try self.deriveKey(password: passwordData)
         let root = try JSONSerialization.jsonObject(
             with: Data(contentsOf: directory.appendingPathComponent("config.json"))) as? [String: Any]
@@ -131,6 +137,17 @@ public enum ClaudeDesktopProfileIdentity {
         }
         guard let token = self.selectToken(entries: entries, organization: organization) else { throw Failure.stale }
         return Session(owner: owner, organization: organization, token: token, key: key)
+    }
+
+    /// Legacy Keychain reads can wait for authorization despite the SDK's no-UI flags.
+    /// Inspect the decrypt ACL first; only the explicit menu action may authorize a new executable.
+    static func readSafeStorage(
+        allowInteraction: Bool,
+        preflight: () -> KeychainAccessPreflight.Outcome,
+        read: () throws -> Data) throws -> Data
+    {
+        if !allowInteraction, preflight() != .allowed { throw Failure.permissionRequired }
+        return try read()
     }
 
     static func selectToken(entries: [String: Any], organization: String, now: Date = Date()) -> String? {
