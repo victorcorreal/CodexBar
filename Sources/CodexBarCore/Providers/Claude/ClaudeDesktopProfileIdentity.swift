@@ -46,6 +46,8 @@ public enum ClaudeDesktopProfileIdentity {
         public let usedPercent: Double
         public let resetsAt: Date?
         public let fetchedAt: Date
+        public var weeklyLimits: [Limit] = []
+        public var extraUsage: ExtraUsage?
     }
 
     public static func read(directory: URL, allowInteraction: Bool = false) async throws -> Identity {
@@ -76,7 +78,10 @@ public enum ClaudeDesktopProfileIdentity {
             formatter.formatOptions = [.withInternetDateTime]
             return formatter.date(from: value)
         }
-        return Usage(identity: identity, usedPercent: percent, resetsAt: resetsAt, fetchedAt: now)
+        var result = Usage(identity: identity, usedPercent: percent, resetsAt: resetsAt, fetchedAt: now)
+        result.weeklyLimits = try self.weeklyLimits(response: response)
+        result.extraUsage = try self.extraUsage(response.extraUsage)
+        return result
     }
 
     private struct Session {

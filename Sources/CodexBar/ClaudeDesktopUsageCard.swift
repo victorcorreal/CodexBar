@@ -25,7 +25,8 @@ extension StatusItemController {
             percentage: usage.percentText(showUsed: self.settings.usageBarsShowUsed),
             showUsed: self.settings.usageBarsShowUsed,
             error: detectionError ?? usage.error,
-            isOpen: !running.isEmpty)
+            isOpen: !running.isEmpty,
+            usage: usage.percentText(showUsed: true) == nil ? nil : usage.usage)
         menu.addItem(self.makeMenuCardItem(
             ClaudeDesktopUsageCard(state: state, width: context.menuWidth),
             id: "claudeDesktopUsage",
@@ -42,6 +43,7 @@ struct ClaudeDesktopUsageCard: View {
         let showUsed: Bool
         let error: String?
         let isOpen: Bool
+        var usage: ClaudeDesktopProfileIdentity.Usage?
 
         var sessionText: String? {
             self.percentage.map { "Current Session: \($0) \(self.showUsed ? "Used" : "Remaining")" }
@@ -60,12 +62,37 @@ struct ClaudeDesktopUsageCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Claude Desktop").font(.headline)
+            Text("Claude").font(.headline)
             if let email = self.state.email {
                 Text(email).foregroundStyle(.secondary).textSelection(.enabled)
             }
-            if let session = self.state.sessionText {
-                Text(session).font(.body)
+            if let usage = self.state.usage {
+                ClaudeDesktopLimitRow(
+                    title: "Sesión",
+                    usedPercent: usage.usedPercent,
+                    resetsAt: usage.resetsAt,
+                    showUsed: self.state.showUsed)
+                if !usage.weeklyLimits.isEmpty {
+                    Divider()
+                    ForEach(usage.weeklyLimits) { limit in
+                        ClaudeDesktopLimitRow(
+                            title: limit.title,
+                            usedPercent: limit.usedPercent,
+                            resetsAt: limit.resetsAt,
+                            showUsed: self.state.showUsed)
+                    }
+                }
+                if let extra = usage.extraUsage {
+                    Divider()
+                    ClaudeDesktopLimitRow(
+                        title: "Uso Extra",
+                        usedPercent: min(100, extra.used / extra.limit * 100),
+                        resetsAt: nil,
+                        showUsed: self.state.showUsed)
+                    Text("\(UsageFormatter.currencyString(extra.used, currencyCode: extra.currency)) / "
+                        + "\(UsageFormatter.currencyString(extra.limit, currencyCode: extra.currency))")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
             }
             if let status = self.state.statusText {
                 Text(status)
