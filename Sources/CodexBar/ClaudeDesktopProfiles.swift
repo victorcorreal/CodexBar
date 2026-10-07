@@ -202,13 +202,13 @@ final class ClaudeDesktopProfiles {
         for app in apps {
             app.terminate()
         }
-        for _ in 0..<80 {
-            if apps.allSatisfy(\.isTerminated) { break }
-            try await Task.sleep(for: .milliseconds(100))
-        }
-        guard apps.allSatisfy(\.isTerminated) else {
+        // Workspace termination flags can lag behind the main process exiting.
+        // Claude may also need more than eight seconds to finish its Code cleanup.
+        let closed = try await Self.waitForQuit(isClosed: { try self.running().isEmpty })
+        guard closed else {
             throw NSError(domain: "ClaudeDesktopProfiles", code: 4, userInfo: [
-                NSLocalizedDescriptionKey: "Claude is still open. Finish your work and quit Claude before switching.",
+                NSLocalizedDescriptionKey: "Claude is taking longer to quit. Finish any active Code work. "
+                    + "Once Claude closes, select this saved account again.",
             ])
         }
         let configuration = NSWorkspace.OpenConfiguration()
@@ -222,5 +222,17 @@ final class ClaudeDesktopProfiles {
         self.revision += 1
         self.didChange?()
         self.verifyIdentity(for: id)
+    }
+
+    static func waitForQuit(
+        pollLimit: Int = 120,
+        isClosed: () throws -> Bool,
+        pause: () async throws -> Void = { try await Task.sleep(for: .milliseconds(250)) }) async throws -> Bool
+    {
+        for _ in 0..<pollLimit {
+            if try isClosed() { return true }
+            try await pause()
+        }
+        return try isClosed()
     }
 }
