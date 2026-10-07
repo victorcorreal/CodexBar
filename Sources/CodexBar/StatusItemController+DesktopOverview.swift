@@ -2,6 +2,10 @@ import AppKit
 import CodexBarCore
 
 extension StatusItemController {
+    var desktopOverviewOnly: Bool {
+        self.settings.userDefaults.bool(forKey: "customDesktopMenuBarEnabled")
+    }
+
     func addDesktopAwareOverviewRows(
         to menu: NSMenu,
         enabledProviders: [UsageProvider],
