@@ -6,6 +6,33 @@ import Testing
 @MainActor
 struct ClaudeDesktopProfilesTests {
     @Test
+    func `switch waits for a slow Claude shutdown beyond the old eight second window`() async throws {
+        var polls = 0
+        let closed = try await ClaudeDesktopProfiles.waitForQuit(
+            isClosed: { polls >= 40 }, pause: { polls += 1 })
+        #expect(closed)
+        #expect(polls == 40)
+    }
+
+    @Test
+    func `quit timeout stays bounded when Claude refuses to close`() async throws {
+        var polls = 0
+        let closed = try await ClaudeDesktopProfiles.waitForQuit(
+            pollLimit: 3, isClosed: { false }, pause: { polls += 1 })
+        #expect(!closed)
+        #expect(polls == 3)
+    }
+
+    @Test
+    func `already closed Claude does not delay opening the next profile`() async throws {
+        var paused = false
+        let closed = try await ClaudeDesktopProfiles.waitForQuit(
+            isClosed: { true }, pause: { paused = true })
+        #expect(closed)
+        #expect(!paused)
+    }
+
+    @Test
     func `profile creation persists isolated directories without copying existing login`() throws {
         let home = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: home) }

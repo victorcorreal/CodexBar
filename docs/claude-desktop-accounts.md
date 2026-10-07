@@ -8,7 +8,9 @@ The existing **Hide Personal Information** preference also hides these email add
 - **Add Claude Desktop Account…** creates an empty profile and opens Claude for sign-in.
 - Each profile has separate Desktop and Code configuration directories. Sign in once per profile.
 - Selecting a profile asks Claude to quit normally before reopening it. Finish active Code work first.
+  CodexBar waits up to about 30 seconds and checks that Claude's main process has exited.
   If Claude does not quit, CodexBar reports an error and does not force it to close.
+  The new profile stays saved: once Claude closes, select that profile again rather than adding it twice.
 - Conversations belong to their profile. Switching accounts does not transfer conversations.
 - Opening Claude from the Dock normally opens the original environment. CodexBar detects the running
   environment rather than treating the last selected profile as active.
