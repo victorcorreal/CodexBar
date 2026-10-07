@@ -23,3 +23,8 @@ They contain login data and must not be committed or synced as source code.
 
 The isolation mechanism uses Claude's Electron `--user-data-dir` argument and `CLAUDE_CONFIG_DIR`.
 These are not a public Desktop account-management API. Claude updates may require adjustments.
+
+The profile isolation pattern is also used by
+[Claude Desktop Switcher](https://github.com/matsumotory/claude-desktop-switcher).
+Desktop cache decryption and ownership handling are adapted from OpenUsage; its MIT notice ships
+in the app's resources.

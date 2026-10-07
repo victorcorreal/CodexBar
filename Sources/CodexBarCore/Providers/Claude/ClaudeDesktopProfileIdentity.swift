@@ -1,5 +1,7 @@
 import Foundation
 
+// Desktop cache handling adapted from OpenUsage. See Resources/OpenUsage-MIT.txt for its MIT notice.
+
 #if os(macOS)
 import CommonCrypto
 import Security
