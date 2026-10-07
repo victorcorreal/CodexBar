@@ -276,6 +276,8 @@ extension StatusItemController {
             return true
         }
 
+        if let result = self.applyDesktopUsageIcon() { return result }
+
         let style = self.store.iconStyle
         let showUsed = self.settings.usageBarsShowUsed
         let showBrandPercent = self.settings.menuBarShowsBrandIconWithPercent
@@ -482,7 +484,7 @@ extension StatusItemController {
         self.applyIcon(phase: phase)
     }
 
-    private func shouldSkipMergedIconRender(_ signature: String) -> Bool {
+    func shouldSkipMergedIconRender(_ signature: String) -> Bool {
         guard self.shouldMergeIcons else {
             self.lastAppliedMergedIconRenderSignature = signature
             return false
@@ -828,7 +830,7 @@ extension StatusItemController {
         return true
     }
 
-    private func setButtonContent(image: NSImage, title: String?, for button: NSStatusBarButton) {
+    func setButtonContent(image: NSImage, title: String?, for button: NSStatusBarButton) {
         let isDebugApp = Self.isDebugApp(bundleIdentifier: Bundle.main.bundleIdentifier)
         let value = Self.buttonTitle(
             title,

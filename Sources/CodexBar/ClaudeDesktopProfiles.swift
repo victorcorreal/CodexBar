@@ -137,6 +137,14 @@ final class ClaudeDesktopProfiles {
         }
     }
 
+    func acceptIdentity(_ identity: ClaudeDesktopProfileIdentity.Identity, directory: URL) {
+        guard (try? ClaudeDesktopProfileIdentity.accountID(directory: directory)) == identity.accountID else { return }
+        self.identities[directory.path] = identity
+        self.identityError = nil
+        self.revision += 1
+        self.didChange?()
+    }
+
     func email(for id: UUID?) -> String? {
         let directory = self.directory(for: id)
         guard let owner = try? ClaudeDesktopProfileIdentity.accountID(directory: directory),

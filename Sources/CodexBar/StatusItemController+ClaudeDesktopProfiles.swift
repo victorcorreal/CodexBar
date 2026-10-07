@@ -43,14 +43,28 @@ extension StatusItemController {
                 item.isEnabled = !profiles.isSwitching
                 submenu.addItem(item)
             }
-            if let active, profiles.email(for: active.profileID) == nil {
+            let desktopUsageEnabled = self.settings.userDefaults.bool(forKey: "customDesktopMenuBarEnabled")
+            let usageError = desktopUsageEnabled ? ClaudeDesktopUsage.shared.error : nil
+            if desktopUsageEnabled, active != nil {
+                let percentage = ClaudeDesktopUsage.shared.percentText(showUsed: self.settings.usageBarsShowUsed) ?? "—"
+                let direction = self.settings.usageBarsShowUsed ? "Used" : "Remaining"
+                let usage = NSMenuItem(
+                    title: "Current Session: \(percentage) \(direction)",
+                    action: nil,
+                    keyEquivalent: "")
+                usage.isEnabled = false
+                submenu.addItem(usage)
+            }
+            if let active, profiles.email(for: active.profileID) == nil || usageError != nil {
                 submenu.addItem(.separator())
                 let status = NSMenuItem(
-                    title: profiles.identityError ?? "Verifying Account Email…", action: nil, keyEquivalent: "")
+                    title: usageError ?? profiles.identityError ?? "Verifying Account Email…",
+                    action: nil,
+                    keyEquivalent: "")
                 status.isEnabled = false
                 submenu.addItem(status)
                 let verify = NSMenuItem(
-                    title: "Verify Account Email…",
+                    title: desktopUsageEnabled ? "Verify Account Email and Usage…" : "Verify Account Email…",
                     action: #selector(self.verifyClaudeDesktopEmail(_:)),
                     keyEquivalent: "")
                 verify.target = self
@@ -95,7 +109,11 @@ extension StatusItemController {
         guard let value = sender.representedObject as? String,
               value == "existing" || UUID(uuidString: value) != nil
         else { return }
-        ClaudeDesktopProfiles.shared.verifyIdentity(for: UUID(uuidString: value), allowInteraction: true)
+        if self.settings.userDefaults.bool(forKey: "customDesktopMenuBarEnabled") {
+            ClaudeDesktopUsage.shared.refresh(allowInteraction: true)
+        } else {
+            ClaudeDesktopProfiles.shared.verifyIdentity(for: UUID(uuidString: value), allowInteraction: true)
+        }
     }
 
     @objc func addClaudeDesktopProfile(_: NSMenuItem) {

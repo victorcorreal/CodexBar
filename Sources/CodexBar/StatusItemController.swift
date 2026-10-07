@@ -433,6 +433,7 @@ final class StatusItemController: NSObject, NSMenuDelegate, StatusItemControllin
         if !SettingsStore.isRunningTests {
             self.agentSessions.start()
         }
+        self.startDesktopUsageIcon()
         self.updateVisibility()
         self.updateIcons()
         self.scheduleCodexAccountMenuProjectionRevalidationIfNeeded(
