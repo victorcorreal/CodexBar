@@ -31,7 +31,9 @@ CodexBar verifies the Desktop account email using its current access token and A
 endpoint, then reads the OAuth usage endpoint with that same token. Both the returned account and
 organization must match Desktop's current context. It never uses Codex identity,
 refreshes Desktop tokens, or modifies Claude's original credentials. Background verification cannot
-show Keychain prompts. The explicit **Verify Account…** action requests access to **Claude Safe Storage**
+show Keychain prompts. A decrypt-permission preflight runs before any background secret read,
+because macOS can leave legacy Keychain reads pending even with no-UI flags. After installing a
+newly signed build, use the explicit **Verify Account…** action to authorize **Claude Safe Storage**
 if needed. An expired token must be renewed by opening Claude itself.
 
 Profiles live locally under `~/Library/Application Support/CodexBar/ClaudeDesktopProfiles/`.
