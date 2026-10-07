@@ -63,9 +63,6 @@ struct ClaudeDesktopUsageCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Claude").font(.headline)
-            if let email = self.state.email {
-                Text(email).foregroundStyle(.secondary).textSelection(.enabled)
-            }
             if let usage = self.state.usage {
                 ClaudeDesktopLimitRow(
                     title: "Sesión",
