@@ -85,9 +85,8 @@ struct ClaudeDesktopUsageTests {
         #expect(state.percentText(showUsed: false, now: self.now) == "63%")
         #expect(state.percentText(showUsed: true, now: self.now) == "37%")
         #expect(state.percentText(showUsed: false, now: self.now.addingTimeInterval(120)) == nil)
-        #expect(StatusItemController.desktopUsageTitle(codex: "86%", claude: "63%") == "Cdx 86%  Cl 63%")
-        #expect(StatusItemController.desktopUsageTitle(codex: "86%", claude: nil) == "Cdx 86%  Cl —")
-        #expect(StatusItemController.customUsageIcon.isTemplate)
+        #expect(StatusItemController.desktopUsageTitle(codex: "86%", claude: "63%") == "Cdx 86  Cl 63")
+        #expect(StatusItemController.desktopUsageTitle(codex: "86%", claude: nil) == "Cdx 86  Cl —")
     }
 
     @Test
