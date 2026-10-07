@@ -32,5 +32,58 @@ final class ClaudeDesktopVisualRenderTests: XCTestCase {
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         try png.write(to: directory.appendingPathComponent("claude-desktop-synthetic.png"))
         XCTAssertEqual(hosting.frame.width, 360)
+        let now = Date()
+        let snapshot = UsageSnapshot(
+            primary: RateWindow(
+                usedPercent: 22,
+                windowMinutes: 300,
+                resetsAt: now.addingTimeInterval(1800),
+                resetDescription: nil),
+            secondary: RateWindow(
+                usedPercent: 28,
+                windowMinutes: 10080,
+                resetsAt: now.addingTimeInterval(86400 * 4),
+                resetDescription: nil),
+            tertiary: nil,
+            updatedAt: now,
+            identity: ProviderIdentitySnapshot(
+                providerID: .codex,
+                accountEmail: "codex@example.com",
+                accountOrganization: nil,
+                loginMethod: "Plus Plan"))
+        let model = try UsageMenuCardView.Model.make(.init(
+            provider: .codex,
+            metadata: XCTUnwrap(ProviderDefaults.metadata[.codex]),
+            snapshot: snapshot,
+            credits: nil,
+            creditsError: nil,
+            dashboardError: nil,
+            tokenSnapshot: nil,
+            tokenError: nil,
+            account: AccountInfo(email: "codex@example.com", plan: "Plus Plan"),
+            isRefreshing: false,
+            lastError: nil,
+            usageBarsShowUsed: false,
+            resetTimeDisplayStyle: .absolute,
+            tokenCostUsageEnabled: false,
+            showOptionalCreditsAndExtraUsage: true,
+            hidePersonalInfo: false,
+            usesLiveSubtitle: false,
+            now: now))
+        let overview = VStack(spacing: 0) {
+            UsageMenuCardView(model: model, width: 360)
+            Divider()
+            ClaudeDesktopUsageCard(state: state, width: 360)
+            Divider()
+            Text("Claude Desktop: cuenta@example.com  ›")
+                .padding()
+        }
+        .environment(\.colorScheme, .dark)
+        .background(Color(nsColor: .windowBackgroundColor))
+        let overviewHosting = NSHostingView(rootView: overview)
+        overviewHosting.appearance = NSAppearance(named: .darkAqua)
+        let overviewPNG = try XCTUnwrap(MenuLayoutScreenshotRenderTests.pngDataWithWindow(hosting: overviewHosting))
+        try overviewPNG.write(to: directory.appendingPathComponent("desktop-overview-synthetic.png"))
+        XCTAssertEqual(overviewHosting.frame.width, 360)
     }
 }
