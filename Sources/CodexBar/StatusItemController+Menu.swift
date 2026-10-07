@@ -853,7 +853,7 @@ extension StatusItemController {
                 currentProvider: context.currentProvider,
                 context: context.openAIContext,
                 addedOpenAIWebItems: addedOpenAIWebItems)
-            self.addUsageHistoryClusterIfNeeded(to: menu, context: context)
+            self.addDesktopAwareUsageHistory(to: menu, context: context)
         }
         self.addUserPluginMenuCards(to: menu, width: context.menuWidth)
     }
@@ -865,7 +865,7 @@ extension StatusItemController {
         provider: UsageProvider?,
         captureMenu: NSMenu? = nil)
     {
-        let actionableSections = sections.filter { section in section.entries.contains(where: \ .isActionable) }
+        let actionableSections = self.desktopMenuSections(sections, provider: provider)
         for (index, section) in actionableSections.enumerated() {
             for entry in section.entries {
                 switch entry {

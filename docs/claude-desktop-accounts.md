@@ -52,3 +52,5 @@ installed app's bundle identifier and restarts CodexBar. The version stays at 0.
 disables the official update feed so automatic updates cannot replace the custom feature.
 
 The Desktop card shows compact bars for the current session and every weekly limit returned by Claude, including model-specific limits. Each row shows its used/remaining percentage and reset time. Extra paid usage appears only when enabled and available, as spending against its monthly cap; this is not a prepaid credit balance. These values always come from the active Desktop account.
+
+The custom Claude menu keeps the usage bars, the account selector and Refresh. The card omits its duplicate email; the selector remains the place to see and switch the active account. Standard links and footer actions remain available in the other provider menus.

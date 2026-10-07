@@ -9,6 +9,23 @@ struct ClaudeDesktopUsageTests {
     private let identity = ClaudeDesktopProfileIdentity.Identity(accountID: "account-a", email: "a@example.com")
 
     @Test
+    func `minimal desktop menu keeps refresh and removes links and footer actions`() {
+        let sections: [MenuDescriptor.Section] = [.init(entries: [
+            .text("Status", .secondary), .submenu("Plan Usage", nil, []),
+            .action("Terminal", .openTerminal(command: "claude")), .action("Dashboard", .dashboard),
+            .action("Refresh", .refresh), .action("Settings", .settings),
+            .action("About", .about), .action("Quit", .quit),
+        ])]
+        let minimal = StatusItemController.desktopMenuSections(sections, minimal: true)
+        #expect(minimal.count == 1)
+        #expect(minimal.first?.entries.count == 1)
+        if case .action(_, .refresh) = minimal[0].entries[0] {} else {
+            Issue.record("Only refresh should remain")
+        }
+        #expect(StatusItemController.desktopMenuSections(sections, minimal: false).first?.entries.count == 8)
+    }
+
+    @Test
     func `desktop visual limits preserve scoped weekly models resets and paid usage units`() throws {
         let data = Data("""
         {"limits":[{"kind":"session","percent":0},
