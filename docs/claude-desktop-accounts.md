@@ -2,6 +2,7 @@
 
 The Claude menu includes **Claude Desktop: email** and a submenu for switching the Mac app's account.
 This is separate from Claude Code CLI account switching and usage cards.
+The existing **Hide Personal Information** preference also hides these email addresses.
 
 - **Existing Claude** opens your original Claude environment.
 - **Add Claude Desktop Account…** creates an empty profile and opens Claude for sign-in.

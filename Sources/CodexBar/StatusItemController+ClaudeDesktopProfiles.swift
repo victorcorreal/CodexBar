@@ -19,7 +19,9 @@ extension StatusItemController {
             } else {
                 title = "Claude Desktop: Closed"
             }
-            let parent = NSMenuItem(title: title, action: nil, keyEquivalent: "")
+            let displayTitle = PersonalInfoRedactor.redactEmails(
+                in: title, isEnabled: self.settings.hidePersonalInfo) ?? title
+            let parent = NSMenuItem(title: displayTitle, action: nil, keyEquivalent: "")
             parent.submenu = submenu
             menu.addItem(parent)
             let rows: [(UUID?, String)] = [(nil, "Existing Claude")] + profiles.profiles.map {
@@ -27,8 +29,11 @@ extension StatusItemController {
             }
             for (id, name) in rows {
                 let email = profiles.email(for: id)
+                let label = email.map { "\(name) · \($0)" } ?? name
+                let displayLabel = PersonalInfoRedactor.redactEmails(
+                    in: label, isEnabled: self.settings.hidePersonalInfo) ?? label
                 let item = NSMenuItem(
-                    title: email.map { "\(name) · \($0)" } ?? name,
+                    title: displayLabel,
                     action: #selector(self.switchClaudeDesktopProfile(_:)),
                     keyEquivalent: "")
                 item.target = self
