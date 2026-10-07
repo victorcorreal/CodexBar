@@ -380,6 +380,14 @@ extension StatusItemController {
             }
 
             if target == .claude {
+                let desktopProfiles = ClaudeDesktopProfiles.shared
+                parts.append(String(desktopProfiles.revision))
+                if let running = try? desktopProfiles.running() {
+                    for profile in running {
+                        parts.append("desktop:\(profile.processID):\(profile.profileID?.uuidString ?? "existing")")
+                        parts.append(desktopProfiles.email(for: profile.profileID) ?? "unverified")
+                    }
+                }
                 parts.append(Self.menuIdentityField(self.store.claudeSwapLastError ?? ""))
                 for accountSnapshot in self.store.claudeSwapAccountSnapshots {
                     parts.append(Self.menuIdentityField(accountSnapshot.id.opaqueID))
