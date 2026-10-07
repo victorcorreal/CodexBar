@@ -29,3 +29,7 @@ The profile isolation pattern is also used by
 [Claude Desktop Switcher](https://github.com/matsumotory/claude-desktop-switcher).
 Desktop cache decryption and ownership handling are adapted from OpenUsage; its MIT notice ships
 in the app's resources.
+
+For this local fork, run `./script/build_and_run.sh`. It packages a development build with the
+installed app's bundle identifier and restarts CodexBar. The version stays at 0.67.0. Adhoc signing
+disables the official update feed so automatic updates cannot replace the custom feature.

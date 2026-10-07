@@ -48,3 +48,4 @@ assert declarations == [{
 PY
 
 echo "Package Info.plist tests passed."
+"$ROOT/Scripts/test_local_build_identity.sh"

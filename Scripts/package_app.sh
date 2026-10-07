@@ -269,6 +269,13 @@ if [[ "$LOWER_CONF" == "debug" ]]; then
   FEED_URL=""
   AUTO_CHECKS=false
 fi
+if [[ "${CODEXBAR_LOCAL_PRODUCTION_ID:-0}" == "1" ]]; then
+  if [[ "$SIGNING_MODE" != "adhoc" ]]; then
+    echo "ERROR: Local production identity requires adhoc signing." >&2
+    exit 1
+  fi
+  BUNDLE_ID="com.steipete.codexbar"
+fi
 if [[ "$SIGNING_MODE" == "adhoc" ]]; then
   FEED_URL=""
   AUTO_CHECKS=false
