@@ -232,12 +232,14 @@ struct StatusMenuSwitcherRefreshTests {
         await Self.waitForRebuildCount(1, rebuildCount: { rebuildCount })
         #expect(menu.items.indices.contains(contentStartIndex))
         #expect(ObjectIdentifier(menu.items[contentStartIndex]) == originalContentID)
+        #expect(menu.items.contains { $0.submenu?.title == "Claude Desktop Accounts" })
 
         let alternateSwitcher = try #require(menu.items.first?.view as? ProviderSwitcherView)
         #expect(alternateSwitcher._test_simulateRuntimeClick(buttonTag: selectedButton.tag))
         await Self.waitForRebuildCount(2, rebuildCount: { rebuildCount })
         #expect(menu.items.indices.contains(contentStartIndex))
         #expect(ObjectIdentifier(menu.items[contentStartIndex]) == originalContentID)
+        #expect(!menu.items.contains { $0.submenu?.title == "Claude Desktop Accounts" })
 
         let restoredSwitcher = try #require(menu.items.first?.view as? ProviderSwitcherView)
         #expect(restoredSwitcher._test_simulateRuntimeClick(buttonTag: alternateButton.tag))

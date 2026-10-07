@@ -695,7 +695,6 @@ extension StatusItemController {
     }
 
     private func addMenuCards(to menu: NSMenu, context: MenuCardContext, captureMenu: NSMenu? = nil) -> Bool {
-        self.addClaudeDesktopProfiles(to: menu, provider: context.currentProvider)
         let fleetProjection = self.fleetAccountProjection(for: context.currentProvider)
         if self.addFleetFallback(fleetProjection, to: menu, context: context) {
             return false
@@ -847,6 +846,7 @@ extension StatusItemController {
             }
         } else {
             let addedOpenAIWebItems = self.addMenuCards(to: menu, context: context, captureMenu: captureMenu)
+            self.addClaudeDesktopProfiles(to: menu, provider: context.currentProvider)
             self.addOpenAIWebItemsIfNeeded(
                 to: menu,
                 currentProvider: context.currentProvider,
