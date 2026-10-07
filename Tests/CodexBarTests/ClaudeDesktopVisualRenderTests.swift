@@ -32,6 +32,17 @@ final class ClaudeDesktopVisualRenderTests: XCTestCase {
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         try png.write(to: directory.appendingPathComponent("claude-desktop-synthetic.png"))
         XCTAssertEqual(hosting.frame.width, 360)
+        let barImage = try StatusItemController.desktopUsageImage(
+            codex: "78%",
+            claude: "69%",
+            codexLogo: XCTUnwrap(ProviderBrandIcon.image(for: .codex)),
+            claudeLogo: XCTUnwrap(ProviderBrandIcon.image(for: .claude)))
+        let barView = NSHostingView(rootView: Image(nsImage: barImage)
+            .foregroundStyle(.white).padding(8).background(Color.black))
+        let barPNG = try XCTUnwrap(MenuLayoutScreenshotRenderTests.pngDataWithWindow(hosting: barView))
+        try barPNG.write(to: directory.appendingPathComponent("desktop-service-logos-synthetic.png"))
+        XCTAssertTrue(barImage.isTemplate)
+        XCTAssertGreaterThan(barImage.size.width, 60)
         let now = Date()
         let snapshot = UsageSnapshot(
             primary: RateWindow(

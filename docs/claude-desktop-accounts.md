@@ -58,3 +58,5 @@ The custom Claude menu keeps the usage bars, the account selector and Refresh. T
 In custom Desktop mode, Overview shows the full enabled-provider cards together. Claude uses the same Desktop bars and account selector as its own tab, including permission errors and verification. Codex retains its own usage, identity and reset credits. No tab change is required to see these details.
 
 Custom Desktop mode always opens Overview and shows only its tab. Provider details and Claude account switching remain together in that view.
+
+The custom menu bar identifies each remaining/used number with its Codex or Claude service logo. It omits the percent symbol and keeps the full service names in the accessibility label.
