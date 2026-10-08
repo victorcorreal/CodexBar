@@ -20,6 +20,24 @@ final class ClaudeDesktopUsage {
     private var monitor: Task<Void, Never>?
     private var request: Task<Void, Never>?
     var didChange: (() -> Void)?
+    private let contextResolver: (() throws -> Context?)?
+    private let usageReader: (URL, Bool) async throws -> ClaudeDesktopProfileIdentity.Usage
+    private let identityAcceptor: (ClaudeDesktopProfileIdentity.Identity, URL) -> Void
+
+    init(
+        contextResolver: (() throws -> Context?)? = nil,
+        usageReader: @escaping (URL, Bool) async throws -> ClaudeDesktopProfileIdentity.Usage = {
+            try await ClaudeDesktopProfileIdentity.readUsage(directory: $0, allowInteraction: $1)
+        },
+        identityAcceptor: @escaping (ClaudeDesktopProfileIdentity.Identity, URL) -> Void = {
+            ClaudeDesktopProfiles.shared.acceptIdentity($0, directory: $1)
+        })
+    {
+        self.contextResolver = contextResolver
+        self.usageReader = usageReader
+        self.identityAcceptor = identityAcceptor
+    }
+
     private let logger = CodexBarLog.logger(LogCategories.app)
 
     func start() {
@@ -33,6 +51,7 @@ final class ClaudeDesktopUsage {
     }
 
     func currentContext() throws -> Context? {
+        if let contextResolver { return try contextResolver() }
         let profiles = ClaudeDesktopProfiles.shared
         let running = try profiles.running()
         // A single shared bar cannot unambiguously describe two simultaneous Desktop accounts.
@@ -51,7 +70,7 @@ final class ClaudeDesktopUsage {
             organizationFingerprint: ClaudeDesktopProfileIdentity.organizationFingerprint(directory: directory))
     }
 
-    func refresh(allowInteraction: Bool = false) {
+    func refresh(allowInteraction: Bool = false, force: Bool = false) {
         do {
             let current = try self.currentContext()
             if current != self.context {
@@ -65,8 +84,14 @@ final class ClaudeDesktopUsage {
             }
             // Expiration also updates the bar when no provider-store event occurs.
             self.didChange?()
-            guard let current, self.request == nil,
-                  allowInteraction || Date().timeIntervalSince(self.lastAttempt) >= 60 else { return }
+            guard let current else { return }
+            if allowInteraction || force {
+                // Explicit requests supersede background work rather than being silently dropped.
+                self.request?.cancel()
+                self.request = nil
+            }
+            guard self.request == nil,
+                  allowInteraction || force || Date().timeIntervalSince(self.lastAttempt) >= 60 else { return }
             self.lastAttempt = Date()
             self.request = Task {
                 defer {
@@ -76,12 +101,11 @@ final class ClaudeDesktopUsage {
                     }
                 }
                 do {
-                    let result = try await ClaudeDesktopProfileIdentity.readUsage(
-                        directory: current.directory, allowInteraction: allowInteraction)
+                    let result = try await self.usageReader(current.directory, allowInteraction)
                     guard !Task.isCancelled else { return }
                     let live = try self.currentContext()
                     guard self.accept(result, requested: current, live: live) else { return }
-                    ClaudeDesktopProfiles.shared.acceptIdentity(result.identity, directory: current.directory)
+                    self.identityAcceptor(result.identity, current.directory)
                     self.logger
                         .info("Claude Desktop session usage refreshed: \(Int(result.usedPercent.rounded()))% used")
                 } catch {

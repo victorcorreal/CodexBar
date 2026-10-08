@@ -197,6 +197,69 @@ struct ClaudeDesktopUsageTests {
         #expect(state.percentText(showUsed: false, now: self.now) == nil)
     }
 
+    @Test
+    func `forced refresh bypasses the background interval without requesting keychain UI`() async {
+        let context = self.context()
+        let usage = ClaudeDesktopProfileIdentity.Usage(
+            identity: self.identity, usedPercent: 37, resetsAt: nil, fetchedAt: self.now)
+        var requests: [Bool] = []
+        var accepted = 0
+        let state = ClaudeDesktopUsage(
+            contextResolver: { context },
+            usageReader: { _, interaction in
+                requests.append(interaction)
+                return usage
+            },
+            identityAcceptor: { _, _ in accepted += 1 })
+        state.refresh()
+        for _ in 0..<1000 where accepted < 1 {
+            await Task.yield()
+        }
+        #expect(accepted == 1)
+        state.refresh()
+        await Task.yield()
+        #expect(requests == [false])
+        state.refresh(force: true)
+        for _ in 0..<1000 where accepted < 2 {
+            await Task.yield()
+        }
+        #expect(accepted == 2)
+        #expect(requests == [false, false])
+    }
+
+    @Test
+    func `explicit verification supersedes background work and ignores its late result`() async {
+        let context = self.context()
+        let backgroundUsage = ClaudeDesktopProfileIdentity.Usage(
+            identity: self.identity, usedPercent: 10, resetsAt: nil, fetchedAt: self.now)
+        let verifiedUsage = ClaudeDesktopProfileIdentity.Usage(
+            identity: self.identity, usedPercent: 37, resetsAt: nil, fetchedAt: self.now)
+        var pending: CheckedContinuation<ClaudeDesktopProfileIdentity.Usage, Never>?
+        var accepted = 0
+        let state = ClaudeDesktopUsage(
+            contextResolver: { context },
+            usageReader: { _, interaction in
+                if interaction { return verifiedUsage }
+                return await withCheckedContinuation { pending = $0 }
+            },
+            identityAcceptor: { _, _ in accepted += 1 })
+        state.refresh()
+        for _ in 0..<1000 where pending == nil {
+            await Task.yield()
+        }
+        #expect(pending != nil)
+        state.refresh(allowInteraction: true)
+        for _ in 0..<1000 where accepted < 1 {
+            await Task.yield()
+        }
+        #expect(accepted == 1)
+        #expect(state.usage?.usedPercent == 37)
+        pending?.resume(returning: backgroundUsage)
+        await Task.yield()
+        #expect(accepted == 1)
+        #expect(state.usage?.usedPercent == 37)
+    }
+
     private func context(
         accountID: String = "account-a",
         processID: pid_t = 1,
