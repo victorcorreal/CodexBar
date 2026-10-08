@@ -176,6 +176,10 @@ extension StatusItemController: StatusItemMenuPersistentActionDelegate {
         originatingMenuID: ObjectIdentifier?,
         originatingMenuInteractionGeneration: Int?)
     {
+        guard !self.hasPreparedForAppShutdown else { return }
+        if self.desktopOverviewOnly {
+            ClaudeDesktopUsage.shared.refresh(force: true)
+        }
         let firstPartyProvider = provider?.firstPartyProvider
         let tracksFirstPartyCards = provider == nil || firstPartyProvider != nil
         let scope: ManualRefreshScope = provider.map(ManualRefreshScope.provider) ?? .global

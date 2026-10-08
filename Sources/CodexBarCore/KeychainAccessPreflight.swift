@@ -310,8 +310,15 @@ public enum KeychainAccessPreflight {
         trustedApplicationValidationStatuses: [OSStatus?]?,
         promptSelector: SecKeychainPromptSelector) -> DecryptACLEvaluation
     {
-        // Any non-zero selector can require authentication based on the caller's signature state.
-        // A background preflight cannot prove that condition safe, so fail closed.
+        // SecACLCopyContents documents requirePassphase as applying to non-trusted applications.
+        // A validated trusted caller can read without prompting even when that bit is set.
+        // Unknown selector bits still fail closed; never infer trust from a matching path alone.
+        guard promptSelector.rawValue & ~SecKeychainPromptSelector.requirePassphase.rawValue == 0 else {
+            return .rejected
+        }
+        if trustedApplicationValidationStatuses?.contains(errSecSuccess) == true {
+            return .allowed
+        }
         guard promptSelector.rawValue == 0 else { return .rejected }
         // A nil application list means the ACL does not restrict callers. For an explicit list, at least one
         // stored code-signing requirement must validate against the invoking executable. A path match alone is

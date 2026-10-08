@@ -70,7 +70,7 @@ struct KeychainNoUIQueryTests {
     }
 
     @Test
-    func `decrypt ACL requires successful code signature validation without a prompt selector`() {
+    func `decrypt ACL honors trusted signatures with the non trusted passphrase prompt`() {
         #expect(KeychainAccessPreflight.evaluateDecryptACL(
             trustedApplicationValidationStatuses: [errSecSuccess],
             promptSelector: []) == .allowed)
@@ -85,7 +85,15 @@ struct KeychainNoUIQueryTests {
             promptSelector: []) == .allowed)
         #expect(KeychainAccessPreflight.evaluateDecryptACL(
             trustedApplicationValidationStatuses: [errSecSuccess],
-            promptSelector: .init(rawValue: 1)) == .rejected)
+            promptSelector: .requirePassphase) == .allowed)
+        for statuses: [OSStatus?]? in [nil, [], [nil], [OSStatus(CSSMERR_CSP_VERIFY_FAILED)]] {
+            #expect(KeychainAccessPreflight.evaluateDecryptACL(
+                trustedApplicationValidationStatuses: statuses,
+                promptSelector: .requirePassphase) == .rejected)
+        }
+        #expect(KeychainAccessPreflight.evaluateDecryptACL(
+            trustedApplicationValidationStatuses: [errSecSuccess],
+            promptSelector: .init(rawValue: 0x8000)) == .rejected)
     }
 
     @Test
