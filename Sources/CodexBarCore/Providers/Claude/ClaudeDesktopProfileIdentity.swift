@@ -124,6 +124,7 @@ public enum ClaudeDesktopProfileIdentity {
                 guard status == errSecSuccess, let data = result as? Data else { throw Failure.permissionRequired }
                 return data
             })
+        if allowInteraction { KeychainAccessPreflight.invalidateGenericPasswordChecks(service: "Claude Safe Storage") }
         let key = try self.deriveKey(password: passwordData)
         let root = try JSONSerialization.jsonObject(
             with: Data(contentsOf: directory.appendingPathComponent("config.json"))) as? [String: Any]

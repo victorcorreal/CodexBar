@@ -25,7 +25,7 @@ extension StatusItemController {
             let parent = NSMenuItem(title: displayTitle, action: nil, keyEquivalent: "")
             parent.submenu = submenu
             menu.addItem(parent)
-            let rows: [(UUID?, String)] = [(nil, "Existing Claude")] + profiles.profiles.map {
+            let rows: [(UUID?, String)] = [(nil, "Claude Principal")] + profiles.profiles.map {
                 (Optional($0.id), $0.name)
             }
             for (id, name) in rows {

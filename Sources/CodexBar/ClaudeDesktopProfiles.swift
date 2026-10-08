@@ -17,6 +17,17 @@ final class ClaudeDesktopProfiles {
         let processID: pid_t
     }
 
+    struct RememberedIdentity: Codable {
+        let accountID: String
+        let email: String
+    }
+
+    struct RememberedState: Codable {
+        var selected: String?
+        var identities: [String: RememberedIdentity] = [:]
+    }
+
+    private var remembered = RememberedState()
     private let home: URL
     private let root: URL
     private(set) var profiles: [Profile] = []
@@ -39,6 +50,10 @@ final class ClaudeDesktopProfiles {
             if FileManager.default.fileExists(atPath: file.path) {
                 self.profiles = try JSONDecoder().decode([Profile].self, from: Data(contentsOf: file))
             }
+            let stateFile = self.root.appendingPathComponent("remembered.json")
+            if FileManager.default.fileExists(atPath: stateFile.path) {
+                self.remembered = try JSONDecoder().decode(RememberedState.self, from: Data(contentsOf: stateFile))
+            }
         } catch {
             self.storageError = error
             self.identityError = "Could not load Claude profiles: \(error.localizedDescription)"
@@ -52,7 +67,7 @@ final class ClaudeDesktopProfiles {
     }
 
     func name(for id: UUID?) -> String {
-        self.profiles.first { $0.id == id }?.name ?? "Existing Claude"
+        self.profiles.first { $0.id == id }?.name ?? "Claude Principal"
     }
 
     func create(name: String) throws -> Profile {
@@ -140,7 +155,12 @@ final class ClaudeDesktopProfiles {
     func acceptIdentity(_ identity: ClaudeDesktopProfileIdentity.Identity, directory: URL) {
         guard (try? ClaudeDesktopProfileIdentity.accountID(directory: directory)) == identity.accountID else { return }
         self.identities[directory.path] = identity
-        self.identityError = nil
+        self.remembered.identities[self.stateKey(directory: directory)] = RememberedIdentity(
+            accountID: identity.accountID, email: identity.email)
+        do { try self.saveRememberedState() } catch {
+            self.identityError = "Could not remember Claude account: \(error.localizedDescription)"
+            self.logger.error("Claude account persistence failed: \(error.localizedDescription)")
+        }
         self.revision += 1
         self.didChange?()
     }
@@ -148,7 +168,8 @@ final class ClaudeDesktopProfiles {
     func email(for id: UUID?) -> String? {
         let directory = self.directory(for: id)
         guard let owner = try? ClaudeDesktopProfileIdentity.accountID(directory: directory),
-              let identity = self.identities[directory.path], identity.accountID == owner
+              let identity = self.remembered.identities[self.stateKey(directory: directory)],
+              identity.accountID == owner
         else { return nil }
         return identity.email
     }
@@ -171,9 +192,10 @@ final class ClaudeDesktopProfiles {
                 self.didChange?()
             }
             do {
-                self.identities[directory.path] = try await ClaudeDesktopProfileIdentity.read(
+                let identity = try await ClaudeDesktopProfileIdentity.read(
                     directory: directory, allowInteraction: allowInteraction)
                 self.identityError = nil
+                self.acceptIdentity(identity, directory: directory)
             } catch {
                 self.identities.removeValue(forKey: directory.path)
                 self.identityError = error.localizedDescription
@@ -182,7 +204,7 @@ final class ClaudeDesktopProfiles {
         }
     }
 
-    func launch(id: UUID?) async throws {
+    func launch(id: UUID?, onlyIfClosed: Bool = false) async throws {
         guard !TestProcessSafety.isRunning else {
             throw NSError(domain: "ClaudeDesktopProfiles", code: 6, userInfo: [
                 NSLocalizedDescriptionKey: "Live Claude launches are disabled in tests.",
@@ -199,10 +221,12 @@ final class ClaudeDesktopProfiles {
         self.isSwitching = true
         defer { self.isSwitching = false }
         let running = try self.running()
+        if onlyIfClosed, !running.isEmpty { return }
         if let selected = running.first(where: { $0.profileID == id }),
            let app = NSRunningApplication(processIdentifier: selected.processID)
         {
             app.activate()
+            try self.rememberSelection(id: id)
             return
         }
         // Ask Claude to quit normally. Never force-kill an active Code session.
@@ -227,9 +251,57 @@ final class ClaudeDesktopProfiles {
             configuration.environment = ["CLAUDE_CONFIG_DIR": codeDirectory.path]
         }
         _ = try await NSWorkspace.shared.openApplication(at: appURL, configuration: configuration)
+        try self.rememberSelection(id: id)
         self.revision += 1
         self.didChange?()
         self.verifyIdentity(for: id)
+    }
+
+    private func stateKey(directory: URL) -> String {
+        if directory == self.directory(for: nil) { return "existing" }
+        return directory.deletingLastPathComponent().lastPathComponent
+    }
+
+    private func saveRememberedState() throws {
+        if let storageError = self.storageError { throw storageError }
+        try FileManager.default.createDirectory(
+            at: self.root, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
+        let file = self.root.appendingPathComponent("remembered.json")
+        try JSONEncoder().encode(self.remembered).write(to: file, options: .atomic)
+        try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: file.path)
+    }
+
+    func rememberSelection(id: UUID?) throws {
+        guard id == nil || self.profiles.contains(where: { $0.id == id }) else {
+            throw NSError(domain: "ClaudeDesktopProfiles", code: 8, userInfo: [
+                NSLocalizedDescriptionKey: "The saved Claude profile no longer exists.",
+            ])
+        }
+        self.remembered.selected = id?.uuidString ?? "existing"
+        try self.saveRememberedState()
+    }
+
+    var rememberedSelection: String? {
+        self.remembered.selected
+    }
+
+    func restoreLastProfileIfClosed() async {
+        guard !TestProcessSafety.isRunning, let selected = self.remembered.selected else { return }
+        do {
+            guard try self.running().isEmpty else { return }
+            let id = selected == "existing" ? nil : UUID(uuidString: selected)
+            guard selected == "existing" || id.map({ value in self.profiles.contains { $0.id == value } }) == true
+            else {
+                throw NSError(domain: "ClaudeDesktopProfiles", code: 8, userInfo: [
+                    NSLocalizedDescriptionKey: "The saved Claude profile no longer exists.",
+                ])
+            }
+            try await self.launch(id: id, onlyIfClosed: true)
+        } catch {
+            self.identityError = "Could not restore Claude account: \(error.localizedDescription)"
+            self.logger.error("Claude profile restoration failed: \(error.localizedDescription)")
+            self.didChange?()
+        }
     }
 
     static func waitForQuit(
