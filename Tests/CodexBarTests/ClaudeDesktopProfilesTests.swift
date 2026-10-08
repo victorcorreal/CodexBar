@@ -48,6 +48,30 @@ struct ClaudeDesktopProfilesTests {
     }
 
     @Test
+    func `verified email and selection survive restart but never cross account owners`() throws {
+        let home = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: home) }
+        let store = ClaudeDesktopProfiles(home: home)
+        let profile = try store.create(name: "Work")
+        let directory = store.directory(for: profile.id)
+        let owner = UUID().uuidString.lowercased()
+        let config = directory.appendingPathComponent("config.json")
+        try JSONSerialization.data(withJSONObject: ["lastKnownAccountUuid": owner]).write(to: config)
+        let identity = try #require(ClaudeDesktopProfileIdentity.verifiedIdentity(
+            expectedAccountID: owner, responseAccountID: owner, email: "work@example.com"))
+        store.acceptIdentity(identity, directory: directory)
+        try store.rememberSelection(id: profile.id)
+        let reopened = ClaudeDesktopProfiles(home: home)
+        #expect(reopened.email(for: profile.id) == "work@example.com")
+        #expect(reopened.rememberedSelection == profile.id.uuidString)
+        #expect(reopened.email(for: nil) == nil)
+        try JSONSerialization.data(withJSONObject: ["lastKnownAccountUuid": UUID().uuidString]).write(to: config)
+        #expect(reopened.email(for: profile.id) == nil)
+        try reopened.rememberSelection(id: nil)
+        #expect(ClaudeDesktopProfiles(home: home).rememberedSelection == "existing")
+    }
+
+    @Test
     func `corrupt profile storage cannot be overwritten by adding an account`() throws {
         let home = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: home) }

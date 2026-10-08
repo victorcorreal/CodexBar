@@ -10,6 +10,7 @@ extension StatusItemController {
             self?.refreshOpenMenusAfterExplicitStoreAction()
         }
         ClaudeDesktopUsage.shared.start()
+        Task { await ClaudeDesktopProfiles.shared.restoreLastProfileIfClosed() }
     }
 
     func applyDesktopUsageIcon() -> Bool? {

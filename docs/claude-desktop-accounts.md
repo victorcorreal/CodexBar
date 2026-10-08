@@ -60,3 +60,7 @@ In custom Desktop mode, Overview shows the full enabled-provider cards together.
 Custom Desktop mode always opens Overview and shows only its tab. Provider details and Claude account switching remain together in that view.
 
 The custom menu bar identifies each remaining/used number with its Codex or Claude service logo. It omits the percent symbol and keeps the full service names in the accessibility label.
+
+Verified email and the last successfully selected profile are saved locally without tokens. The saved email is shown only while the profile's local account identifier still matches. On CodexBar startup, the saved profile opens if Claude is closed; an already open Claude session is left alone. The ordinary Claude installation is labeled Claude Principal.
+
+The local build/run wrapper signs the complete bundle with an existing Apple Development certificate and pins that identity locally for later builds. It never changes Keychain permissions. After switching from the old ad-hoc build, approve Claude Safe Storage once with Always Allow if you want background reading. Later builds retain the certificate-based designated requirement; certificate replacement, Claude credential changes or a locked Keychain may still require authorization.
